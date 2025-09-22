@@ -1,7 +1,26 @@
 {
   "name": "apple-books-mcp",
   "version": "1.0.0",
-  "description": "MCP server for Apple Books data extraction",
+  "description": "MCP server that provides access to Apple Books library, collections, and annotations through a clean API interface",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "apple-books",
+    "ibooks",
+    "annotations",
+    "highlights",
+    "reading",
+    "library",
+    "books",
+    "claude",
+    "ai"
+  ],
+  "author": "Artem Shuvaev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sadfsdfdsa/apple-books-mcp"
+  },
   "type": "module",
   "main": "index.js",
   "bin": {
@@ -13,5 +32,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "sql.js": "^1.13.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

@@ -21,7 +21,17 @@ const getDatabaseFile = async (directory) => {
   try {
     files = await readdir(directory)
   } catch (e) {
-    throw new Error(`Cannot access directory: ${directory}`)
+    if (e.code === 'ENOENT') {
+      throw new Error(
+        `Apple Books directory not found at ${directory}. Please ensure Apple Books is installed and has been opened at least once.`,
+      )
+    }
+    if (e.code === 'EACCES') {
+      throw new Error(
+        `Permission denied accessing ${directory}. Please check your system permissions.`,
+      )
+    }
+    throw new Error(`Cannot access directory ${directory}: ${e.message}`)
   }
 
   const dbFilename = files
@@ -29,7 +39,9 @@ const getDatabaseFile = async (directory) => {
     .slice(-1)
 
   if (dbFilename.length === 0) {
-    throw new Error(`No SQLite database found in ${directory}`)
+    throw new Error(
+      `No SQLite database found in ${directory}. Please ensure Apple Books has been opened at least once to create the database.`,
+    )
   }
 
   databaseFile = `${directory}/${dbFilename}`
@@ -223,6 +235,9 @@ const server = new Server(
   {
     name: 'apple-books-mcp',
     version: '1.0.0',
+    description:
+      'Access your Apple Books library, collections, and annotations directly through MCP',
+    vendor: 'apple-books-mcp',
   },
   {
     capabilities: {
@@ -236,7 +251,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'get_books',
-        description: 'Get all books from Apple Books library',
+        description:
+          'Retrieve a comprehensive list of all books in your Apple Books library, including metadata like title, author, language, and file path',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -244,7 +260,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'get_collections',
-        description: 'Get all collections and their books from Apple Books',
+        description:
+          'Get all custom collections from Apple Books along with the books they contain. Collections help organize your library into categories like "To Read", "Favorites", etc.',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -252,7 +269,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'get_annotations',
-        description: 'Get all annotations/highlights from Apple Books',
+        description:
+          'Retrieve all highlights and annotations from your Apple Books, including the selected text, chapter information, and associated book metadata. Perfect for reviewing your reading notes',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -260,7 +278,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'get_book_list',
-        description: "Get a simple list of books in 'Author - Title' format",
+        description:
+          "Get a simplified, readable list of all books formatted as 'Author - Title'. Useful for quick overview or sharing your reading list",
         inputSchema: {
           type: 'object',
           properties: {},
@@ -268,13 +287,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'search_books',
-        description: 'Search for books by title or author',
+        description:
+          'Search your Apple Books library by title or author name. Returns matching books with their complete metadata. Case-insensitive partial matching supported',
         inputSchema: {
           type: 'object',
           properties: {
             query: {
               type: 'string',
-              description: 'Search query for title or author',
+              description:
+                'Search term to match against book titles and author names (case-insensitive, partial matches supported)',
             },
           },
           required: ['query'],
@@ -343,13 +364,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'search_books': {
+        if (!args.query || args.query.trim() === '') {
+          throw new Error('Search query cannot be empty')
+        }
+
         const assets = await getAssetsData()
-        const query = args.query.toLowerCase()
+        const query = args.query.toLowerCase().trim()
         const results = assets.filter(
           (asset) =>
             asset.title?.toLowerCase().includes(query) ||
             asset.author?.toLowerCase().includes(query),
         )
+
+        if (results.length === 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No books found matching "${args.query}". Try a different search term or use get_books to see all available books.`,
+              },
+            ],
+          }
+        }
+
         return {
           content: [
             {
@@ -364,6 +401,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`)
     }
   } catch (error) {
+    console.error(`Error in tool ${name}:`, error)
+
     return {
       content: [
         {
@@ -376,9 +415,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 })
 
 async function main() {
-  const transport = new StdioServerTransport()
-  await server.connect(transport)
-  console.error('Apple Books MCP server running on stdio')
+  try {
+    const transport = new StdioServerTransport()
+    await server.connect(transport)
+    console.error('Apple Books MCP server is running successfully')
+    console.error(
+      `Serving tools: get_books, get_collections, get_annotations, get_book_list, search_books`,
+    )
+  } catch (error) {
+    console.error('Failed to start Apple Books MCP server:', error.message)
+    process.exit(1)
+  }
 }
 
 main().catch((error) => {
