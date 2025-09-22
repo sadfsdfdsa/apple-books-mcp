@@ -4,8 +4,24 @@
     "version": "1.0.0",
     "description": "Extension to integrate Apple Books with MCP",
     "icon": "icon.png",
+    "keywords": [
+        "mcp",
+        "model-context-protocol",
+        "apple-books",
+        "ibooks",
+        "library",
+        "books",
+        "claude",
+        "ai"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sadfsdfdsa/apple-books-mcp"
+    },
+    "license": "MIT",
     "author": {
-        "name": "Artem Shuvaev"
+        "name": "Artem Shuvaev",
+        "url": "https://github.com/sadfsdfdsa"
     },
     "server": {
         "type": "node",
@@ -15,6 +31,65 @@
             "args": [
                 "${__dirname}/server/index.js"
             ]
+        }
+    },
+    "tools": [
+        {
+            "name": "get_books",
+            "description": "Retrieve a comprehensive list of all books in your Apple Books library, including metadata like title, author, language, and file path",
+            "input_schema": {
+                "type": "object",
+                "properties": {}
+            }
+        },
+        {
+            "name": "get_collections",
+            "description": "Get all custom collections from Apple Books along with the books they contain. Collections help organize your library into categories like \"To Read\", \"Favorites\", etc.",
+            "input_schema": {
+                "type": "object",
+                "properties": {}
+            }
+        },
+        {
+            "name": "get_annotations",
+            "description": "Retrieve all highlights and annotations from your Apple Books, including the selected text, chapter information, and associated book metadata. Perfect for reviewing your reading notes",
+            "input_schema": {
+                "type": "object",
+                "properties": {}
+            }
+        },
+        {
+            "name": "get_book_list",
+            "description": "Get a simplified, readable list of all books formatted as 'Author - Title'. Useful for quick overview or sharing your reading list",
+            "input_schema": {
+                "type": "object",
+                "properties": {}
+            }
+        },
+        {
+            "name": "search_books",
+            "description": "Search your Apple Books library by title or author name. Returns matching books with their complete metadata. Case-insensitive partial matching supported",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search term to match against book titles and author names (case-insensitive, partial matches supported)"
+                    }
+                },
+                "required": [
+                    "query"
+                ]
+            }
+        }
+    ],
+    "compatibility": {
+        "claude_desktop": ">=1.0.0",
+        "platforms": [
+            "darwin"
+        ],
+        "runtimes": {
+            "node": ">=16.0.0"
         }
     }
 }
