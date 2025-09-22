@@ -21,7 +21,7 @@ Add this configuration:
   "mcpServers": {
     "apple-books": {
       "command": "node",
-      "args": ["/Users/karanarqq/projects/apple-books-json-exporter/index.js"]
+      "args": ["/Users/karanarqq/projects/apple-books-mcp/index.js"]
     }
   }
 }
