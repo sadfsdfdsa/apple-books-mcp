@@ -6,7 +6,8 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
-import Db from 'better-sqlite3'
+import initSqlJs from 'sql.js'
+import { readFile } from 'fs/promises'
 
 const ASSETS_DATABASE_DIRECTORY = `${process.env.HOME}/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary`
 const ANNOTATIONS_DATABASE_DIRECTORY = `${process.env.HOME}/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation`
@@ -37,51 +38,92 @@ const getDatabaseFile = async (directory) => {
 
 const getAssetsData = async () => {
   const assetsDatabaseFile = await getDatabaseFile(ASSETS_DATABASE_DIRECTORY)
-  const dbAssets = new Db(assetsDatabaseFile)
+  const SQL = await initSqlJs()
+  const fileBuffer = await readFile(assetsDatabaseFile)
+  const dbAssets = new SQL.Database(fileBuffer)
 
-  const assets = dbAssets
-    .prepare(
-      `SELECT
-      ZASSETID as id, ZTITLE AS title, ZAUTHOR AS author, ZLANGUAGE as language, ZPATH as path
-      FROM ZBKLIBRARYASSET
-      WHERE ZTITLE IS NOT NULL`,
-    )
-    .all()
+  const result = dbAssets.exec(
+    `SELECT
+    ZASSETID as id, ZTITLE AS title, ZAUTHOR AS author, ZLANGUAGE as language, ZPATH as path
+    FROM ZBKLIBRARYASSET
+    WHERE ZTITLE IS NOT NULL`,
+  )
 
   dbAssets.close()
-  return assets
+
+  if (result.length === 0) return []
+
+  const columns = result[0].columns
+  const values = result[0].values
+
+  return values.map((row) => {
+    const obj = {}
+    columns.forEach((col, index) => {
+      obj[col] = row[index]
+    })
+    return obj
+  })
 }
 
 const getCollectionsData = async () => {
   const assetsDatabaseFile = await getDatabaseFile(ASSETS_DATABASE_DIRECTORY)
-  const dbAssets = new Db(assetsDatabaseFile)
+  const SQL = await initSqlJs()
+  const fileBuffer = await readFile(assetsDatabaseFile)
+  const dbAssets = new SQL.Database(fileBuffer)
 
-  const assets = dbAssets
-    .prepare(
-      `SELECT
-      ZASSETID as id, ZTITLE AS title, ZAUTHOR AS author, ZLANGUAGE as language, ZPATH as path
-      FROM ZBKLIBRARYASSET
-      WHERE ZTITLE IS NOT NULL`,
-    )
-    .all()
+  const assetsResult = dbAssets.exec(
+    `SELECT
+    ZASSETID as id, ZTITLE AS title, ZAUTHOR AS author, ZLANGUAGE as language, ZPATH as path
+    FROM ZBKLIBRARYASSET
+    WHERE ZTITLE IS NOT NULL`,
+  )
 
-  const collections = dbAssets
-    .prepare(
-      `SELECT
-      ZCOLLECTIONID as id, ZTITLE AS title, Z_PK as pk
-      FROM ZBKCOLLECTION
-      WHERE Z_PK > 8`,
-    )
-    .all()
+  const assets =
+    assetsResult.length > 0
+      ? assetsResult[0].values.map((row) => {
+          const obj = {}
+          assetsResult[0].columns.forEach((col, index) => {
+            obj[col] = row[index]
+          })
+          return obj
+        })
+      : []
 
-  const members = dbAssets
-    .prepare(
-      `SELECT
+  const collectionsResult = dbAssets.exec(
+    `SELECT
+    ZCOLLECTIONID as id, ZTITLE AS title, Z_PK as pk
+    FROM ZBKCOLLECTION
+    WHERE Z_PK > 8`,
+  )
+
+  const collections =
+    collectionsResult.length > 0
+      ? collectionsResult[0].values.map((row) => {
+          const obj = {}
+          collectionsResult[0].columns.forEach((col, index) => {
+            obj[col] = row[index]
+          })
+          return obj
+        })
+      : []
+
+  const membersResult = dbAssets.exec(
+    `SELECT
     ZCOLLECTION as id, ZASSETID as assetId
     FROM ZBKCOLLECTIONMEMBER
     WHERE ZCOLLECTION > 8`,
-    )
-    .all()
+  )
+
+  const members =
+    membersResult.length > 0
+      ? membersResult[0].values.map((row) => {
+          const obj = {}
+          membersResult[0].columns.forEach((col, index) => {
+            obj[col] = row[index]
+          })
+          return obj
+        })
+      : []
 
   const collectionsWithMembers = []
 
@@ -111,32 +153,53 @@ const getCollectionsData = async () => {
 
 const getAnnotationsData = async () => {
   const assetsDatabaseFile = await getDatabaseFile(ASSETS_DATABASE_DIRECTORY)
-  const dbAssets = new Db(assetsDatabaseFile)
+  const SQL = await initSqlJs()
+  const fileBuffer = await readFile(assetsDatabaseFile)
+  const dbAssets = new SQL.Database(fileBuffer)
 
-  const assets = dbAssets
-    .prepare(
-      `SELECT
-      ZASSETID as id, ZTITLE AS title, ZAUTHOR AS author, ZLANGUAGE as language, ZPATH as path
-      FROM ZBKLIBRARYASSET
-      WHERE ZTITLE IS NOT NULL`,
-    )
-    .all()
+  const assetsResult = dbAssets.exec(
+    `SELECT
+    ZASSETID as id, ZTITLE AS title, ZAUTHOR AS author, ZLANGUAGE as language, ZPATH as path
+    FROM ZBKLIBRARYASSET
+    WHERE ZTITLE IS NOT NULL`,
+  )
+
+  const assets =
+    assetsResult.length > 0
+      ? assetsResult[0].values.map((row) => {
+          const obj = {}
+          assetsResult[0].columns.forEach((col, index) => {
+            obj[col] = row[index]
+          })
+          return obj
+        })
+      : []
 
   dbAssets.close()
 
   const annotationsDatabaseFile = await getDatabaseFile(
     ANNOTATIONS_DATABASE_DIRECTORY,
   )
-  const dbAnnotations = new Db(annotationsDatabaseFile)
+  const annotationsBuffer = await readFile(annotationsDatabaseFile)
+  const dbAnnotations = new SQL.Database(annotationsBuffer)
 
-  const annotations = dbAnnotations
-    .prepare(
-      `SELECT
-      ZANNOTATIONASSETID as assetId, ZANNOTATIONSELECTEDTEXT as selectedText, ZFUTUREPROOFING5 as chapter, ZANNOTATIONCREATIONDATE as creationDate, ZANNOTATIONMODIFICATIONDATE as modificationDate
-      FROM ZAEANNOTATION
-      WHERE ZANNOTATIONDELETED = 0 AND ZANNOTATIONSELECTEDTEXT NOT NULL`,
-    )
-    .all()
+  const annotationsResult = dbAnnotations.exec(
+    `SELECT
+    ZANNOTATIONASSETID as assetId, ZANNOTATIONSELECTEDTEXT as selectedText, ZFUTUREPROOFING5 as chapter, ZANNOTATIONCREATIONDATE as creationDate, ZANNOTATIONMODIFICATIONDATE as modificationDate
+    FROM ZAEANNOTATION
+    WHERE ZANNOTATIONDELETED = 0 AND ZANNOTATIONSELECTEDTEXT NOT NULL`,
+  )
+
+  const annotations =
+    annotationsResult.length > 0
+      ? annotationsResult[0].values.map((row) => {
+          const obj = {}
+          annotationsResult[0].columns.forEach((col, index) => {
+            obj[col] = row[index]
+          })
+          return obj
+        })
+      : []
 
   const annotationsBook = []
 
