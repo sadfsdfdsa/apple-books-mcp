@@ -1,0 +1,17 @@
+{
+  "name": "apple-books-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Apple Books data extraction",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "apple-books-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "better-sqlite3": "^11.3.0"
+  }
+}
